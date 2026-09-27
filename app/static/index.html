@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Technical Documentation RAG</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+    body { margin: 0; background: #09111f; color: #eef4ff; }
+    main { width: min(900px, calc(100% - 32px)); margin: 48px auto; }
+    h1 { margin-bottom: 4px; } .sub { color: #a9b8cf; margin-top: 0; }
+    section { background: #111c2e; border: 1px solid #24344f; border-radius: 14px; padding: 20px; margin: 18px 0; }
+    textarea, input[type=file] { width: 100%; box-sizing: border-box; margin: 10px 0; }
+    textarea { min-height: 90px; padding: 12px; border-radius: 8px; border: 1px solid #3a4c68; background: #0b1525; color: white; }
+    button { background: #5ea0ff; color: #06101f; font-weight: 700; border: 0; border-radius: 8px; padding: 10px 16px; cursor: pointer; }
+    button:disabled { opacity: .5; } pre { white-space: pre-wrap; font-family: inherit; }
+    .source { border-left: 3px solid #5ea0ff; padding-left: 12px; margin: 14px 0; color: #c8d5e8; }
+    .meta { color: #87a0c1; font-size: .9rem; } a { color: #79b3ff; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Technical Documentation RAG</h1>
+  <p class="sub">Ask grounded questions and inspect the retrieved evidence.</p>
+
+  <section>
+    <h2>1. Add a document</h2>
+    <input id="file" type="file" accept=".txt,.md,.pdf">
+    <button id="upload">Upload and index</button>
+    <p id="uploadStatus" class="meta">A sample turbine guide is indexed automatically.</p>
+  </section>
+
+  <section>
+    <h2>2. Ask a question</h2>
+    <textarea id="question">What should an engineer check when turbine bearing vibration increases?</textarea>
+    <button id="ask">Retrieve and answer</button>
+  </section>
+
+  <section id="result" hidden>
+    <h2>Answer</h2>
+    <pre id="answer"></pre>
+    <p id="mode" class="meta"></p>
+    <h3>Retrieved sources</h3>
+    <div id="sources"></div>
+  </section>
+  <p class="meta">Developer API: <a href="/docs">/docs</a></p>
+</main>
+<script>
+const askButton = document.querySelector('#ask');
+askButton.addEventListener('click', async () => {
+  askButton.disabled = true;
+  const response = await fetch('/ask', {method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({question: document.querySelector('#question').value})});
+  const data = await response.json();
+  document.querySelector('#result').hidden = false;
+  document.querySelector('#answer').textContent = data.answer || data.detail;
+  document.querySelector('#mode').textContent = `Mode: ${data.mode || 'error'}`;
+  document.querySelector('#sources').innerHTML = (data.sources || []).map((s, i) => `<div class="source"><b>[${i+1}] ${s.source}${s.page ? ', page '+s.page : ''}</b><div class="meta">Similarity: ${s.score}</div><p>${escapeHtml(s.text)}</p></div>`).join('');
+  askButton.disabled = false;
+});
+document.querySelector('#upload').addEventListener('click', async () => {
+  const file = document.querySelector('#file').files[0]; if (!file) return;
+  const body = new FormData(); body.append('file', file);
+  const response = await fetch('/documents/upload', {method:'POST', body});
+  const data = await response.json();
+  document.querySelector('#uploadStatus').textContent = data.chunks_added ? `${data.filename}: ${data.chunks_added} chunks indexed.` : data.detail;
+});
+function escapeHtml(value) { const div = document.createElement('div'); div.textContent = value; return div.innerHTML; }
+</script>
+</body>
+</html>
