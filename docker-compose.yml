@@ -1,0 +1,15 @@
+services:
+  rag-api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - rag-data:/app/data
+      - model-cache:/root/.cache/huggingface
+
+volumes:
+  rag-data:
+  model-cache:
+

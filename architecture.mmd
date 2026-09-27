@@ -1,0 +1,19 @@
+flowchart LR
+    subgraph Offline[Offline indexing pipeline]
+        D[Private PDFs and manuals] --> L[Load and clean text]
+        L --> C[Overlapping chunks]
+        C --> E[Local sentence embeddings]
+        E --> F[(FAISS vector index)]
+        C --> M[(Chunk metadata)]
+    end
+
+    subgraph Online[Online question-answering pipeline]
+        Q[Engineer question] --> QE[Question embedding]
+        QE --> F
+        F --> R[Top-k relevant chunks]
+        M --> R
+        R --> P[Grounded prompt]
+        P --> G[LLM or retrieval-only response]
+        G --> A[Answer with sources]
+    end
+
